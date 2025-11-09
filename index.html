@@ -80,10 +80,13 @@
 
       // API 요청 (여기선 예시로 setTimeout으로 가짜 응답)
       async function sendToAPI(message) {
-        // 실제 API 요청 (예: fetch("https://api.yourserver.com/chat", {...}))
-        // ↓ 지금은 테스트용
-        await new Promise((r) => setTimeout(r, 800)); // 0.8초 지연
-        return '이건 봇의 응답 예시야: "' + message + '"에 대한 답변이야 🤖';
+        const res = await fetch("http://localhost:8080/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message }),
+        });
+        const data = await res.json();
+        return data.responseMessage;
       }
 
       input.addEventListener("keydown", async (e) => {
