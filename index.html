@@ -188,6 +188,13 @@
       // ------------------------------------------
       function renderChatList(chats) {
         chatListEl.innerHTML = "";
+
+        const newChatItem = document.createElement("div");
+        newChatItem.textContent = "새 채팅";
+        newChatItem.style.fontWeight = "bold";
+        newChatItem.onclick = () => (window.location.href = "index.html");
+        chatListEl.append(newChatItem);
+
         chats.forEach((chat) => {
           const item = document.createElement("div");
           item.textContent = chat.title;
@@ -214,7 +221,7 @@
       async function fetchChatList() {
         try {
           const res = await fetch("http://localhost:8080/chats/conversations", {
-            headers: { Authorization: `Bearer ${accessToken}` },
+            headers: { Authorization: accessToken },
           });
           const result = await parseResponse(res);
           if (!result.ok) {
@@ -233,17 +240,23 @@
       // ------------------------------------------
       async function fetchChatHistory(chatId) {
         try {
-          const res = await fetch(`http://localhost:8080/chats/${chatId}`, {
-            headers: { Authorization: `Bearer ${accessToken}` },
-          });
+          const res = await fetch(
+            `http://localhost:8080/chats/conversations/${chatId}`,
+            {
+              headers: { Authorization: accessToken },
+            }
+          );
+
           const result = await parseResponse(res);
           if (!result.ok) {
             console.error(result.error);
             return;
           }
-          if (result.data?.messages) {
-            result.data.messages.forEach((msg) =>
-              renderMessage(msg.text, msg.sender === "USER")
+
+          const messages = result.data?.messageDtos;
+          if (messages && Array.isArray(messages)) {
+            messages.forEach((msg) =>
+              renderMessage(msg.content, msg.role === "USER")
             );
           }
         } catch (err) {
@@ -273,15 +286,15 @@
             method: "POST",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${accessToken}`,
+              Authorization: accessToken,
             },
             body: JSON.stringify({ prompt }),
           });
           const result = await parseResponse(res);
           if (!result.ok) return result;
 
-          if (result.data?.chatRoomId) {
-            window.location.href = `index.html?chatId=${result.data.chatRoomId}`;
+          if (result.data?.chatId) {
+            window.location.href = `index.html?chatId=${result.data.chatId}`;
           }
           return result;
         }
@@ -291,7 +304,7 @@
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${accessToken}`,
+            Authorization: accessToken,
           },
           body: JSON.stringify({ prompt }),
         });
@@ -305,7 +318,7 @@
         try {
           await fetch("http://localhost:8080/logout", {
             method: "POST",
-            headers: { Authorization: `Bearer ${refreshToken}` },
+            headers: { Authorization: refreshToken },
           });
         } catch (err) {
           console.error("로그아웃 실패:", err);
