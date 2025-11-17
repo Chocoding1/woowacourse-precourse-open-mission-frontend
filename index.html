@@ -13,10 +13,20 @@
       }
       header {
         display: flex;
-        justify-content: flex-end;
+        justify-content: space-between;
+        align-items: center;
         padding: 10px 20px;
         background-color: #f5f5f5;
         border-bottom: 1px solid #ddd;
+      }
+      #header-left {
+        font-size: 16px;
+        font-weight: bold;
+      }
+      #header-right button {
+        margin-left: 10px;
+        padding: 5px 10px;
+        cursor: pointer;
       }
       header button {
         margin-left: 10px;
@@ -95,9 +105,14 @@
     </style>
   </head>
   <body>
-    <header id="header"></header>
+    <header id="header">
+      <div id="header-left">AI 챗봇입니다. 무엇이든 물어보세요!</div>
+      <div id="header-right"></div>
+    </header>
+
     <main>
       <div id="chat-list"></div>
+
       <div id="chat-container">
         <div id="messages"></div>
         <div id="input-container">
@@ -113,6 +128,7 @@
 
     <script>
       const headerEl = document.getElementById("header");
+      const headerRightEl = document.getElementById("header-right");
       const chatListEl = document.getElementById("chat-list");
       const messagesEl = document.getElementById("messages");
       const chatInputEl = document.getElementById("chat-input");
@@ -147,21 +163,24 @@
       // 헤더 렌더링
       // ------------------------------------------
       function renderHeader() {
-        headerEl.innerHTML = "";
+        headerRightEl.innerHTML = "";
         if (accessToken) {
           const logoutBtn = document.createElement("button"); // 새 HTML 요소를 생성하는 JS 코드. <button> 태그가 만들어짐
           logoutBtn.textContent = "로그아웃";
           logoutBtn.onclick = handleLogout;
-          headerEl.appendChild(logoutBtn);
+
+          headerRightEl.appendChild(logoutBtn);
         } else {
           const loginBtn = document.createElement("button");
           loginBtn.textContent = "로그인";
           loginBtn.onclick = () => (window.location.href = "/login.html");
+
           const signupBtn = document.createElement("button");
           signupBtn.textContent = "회원가입";
           signupBtn.onclick = () => (window.location.href = "/signup.html");
-          headerEl.appendChild(loginBtn);
-          headerEl.appendChild(signupBtn);
+
+          headerRightEl.appendChild(loginBtn);
+          headerRightEl.appendChild(signupBtn);
         }
       }
 
