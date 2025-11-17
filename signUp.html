@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <title>회원가입</title>
+    <style>
+      body {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background-color: #fafafa;
+      }
+
+      header {
+        padding: 10px 20px;
+        background-color: #f5f5f5;
+        border-bottom: 1px solid #ddd;
+        font-weight: bold;
+      }
+
+      main {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+
+      .login-box {
+        width: 340px;
+        padding: 30px;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        display: flex;
+        flex-direction: column;
+        box-sizing: border-box;
+      }
+
+      .login-box input {
+        width: 100%;
+        padding: 12px;
+        margin-bottom: 12px;
+        border-radius: 5px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        box-sizing: border-box;
+      }
+
+      .button-group {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .button-group button {
+        flex: 1;
+        padding: 12px;
+        border-radius: 5px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+      }
+
+      #login-btn {
+        background-color: #007bff;
+        color: white;
+      }
+
+      #signup-btn {
+        background-color: #eee;
+        color: black;
+      }
+
+      #email-code-container {
+        display: flex;
+        margin-bottom: 12px;
+        gap: 10px;
+      }
+
+      #email-code-container input {
+        flex: 1;
+      }
+
+      .message {
+        font-size: 12px;
+        margin-bottom: 12px;
+        color: red;
+      }
+
+      .message.success {
+        color: green;
+      }
+    </style>
+  </head>
+  <body>
+    <header>AI 챗봇 회원가입</header>
+
+    <main>
+      <div class="login-box">
+        <div style="display: flex; gap: 10px; margin-bottom: 12px">
+          <input id="email" type="email" placeholder="이메일" />
+          <button id="send-code-btn">인증코드 전송</button>
+        </div>
+        <div id="email-code-container" style="display: none">
+          <input id="email-code" type="text" placeholder="이메일 인증코드" />
+          <button id="verify-code-btn">인증</button>
+        </div>
+        <div id="email-msg" class="message"></div>
+
+        <input id="password" type="password" placeholder="비밀번호" />
+        <input id="name" type="text" placeholder="이름" />
+
+        <div class="button-group">
+          <button id="signup-btn">회원가입</button>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const emailEl = document.getElementById("email");
+      const emailCodeContainer = document.getElementById(
+        "email-code-container"
+      );
+      const emailCodeEl = document.getElementById("email-code");
+      const emailMsg = document.getElementById("email-msg");
+      const passwordEl = document.getElementById("password");
+      const nameEl = document.getElementById("name");
+
+      let emailVerified = false;
+
+      document
+        .getElementById("send-code-btn")
+        .addEventListener("click", async () => {
+          const email = emailEl.value.trim();
+          if (!email) return alert("이메일을 입력하세요.");
+
+          try {
+            const res = await fetch("http://localhost:8080/emails/send-code", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email }),
+            });
+
+            if (!res.ok) {
+              const err = await res.json();
+              emailMsg.textContent = err.errorMessage || "인증코드 전송 실패";
+              emailMsg.className = "message";
+              return;
+            }
+
+            emailCodeContainer.style.display = "flex";
+            alert("인증코드가 전송되었습니다.");
+          } catch (err) {
+            console.error(err);
+            alert("서버 오류가 발생했습니다.");
+          }
+        });
+
+      document
+        .getElementById("verify-code-btn")
+        .addEventListener("click", async () => {
+          const email = emailEl.value.trim();
+          const authCode = emailCodeEl.value.trim();
+          if (!authCode) return alert("인증코드를 입력하세요.");
+
+          try {
+            const res = await fetch(
+              "http://localhost:8080/emails/verify-code",
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, authCode }),
+              }
+            );
+
+            if (!res.ok) {
+              const err = await res.json();
+              emailMsg.textContent = err.errorMessage || "인증 실패";
+              emailMsg.className = "message";
+              return;
+            }
+
+            emailVerified = true;
+            emailMsg.textContent = "인증 완료";
+            emailMsg.className = "message success";
+          } catch (err) {
+            console.error(err);
+            alert("서버 오류가 발생했습니다.");
+          }
+        });
+
+      document
+        .getElementById("signup-btn")
+        .addEventListener("click", async () => {
+          const email = emailEl.value.trim();
+          const password = passwordEl.value.trim();
+          const name = nameEl.value.trim();
+
+          if (!email || !password || !name)
+            return alert("모든 정보를 입력하세요.");
+          if (!emailVerified) return alert("이메일 인증을 완료하세요.");
+
+          try {
+            const res = await fetch("http://localhost:8080/members", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ email, password, name }),
+            });
+
+            if (!res.ok) {
+              const err = await res.json();
+              return alert(err.errorMessage || "회원가입 실패");
+            }
+
+            window.location.href = "/login.html";
+          } catch (err) {
+            console.error(err);
+            alert("서버 오류가 발생했습니다.");
+          }
+        });
+    </script>
+  </body>
+</html>
