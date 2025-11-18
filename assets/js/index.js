@@ -6,12 +6,28 @@ const sendBtnEl = document.getElementById("send-btn");
 
 const accessToken = localStorage.getItem("accessToken");
 const refreshToken = localStorage.getItem("refreshToken");
-const urlParams = new URLSearchParams(window.location.search);
-const chatId = urlParams.get("chatId");
+const chatId = new URLSearchParams(window.location.search).get("chatId");
 
-// =============================
-// 공통 응답 파서
-// =============================
+const BASE_URL = "http://localhost:8080";
+
+const LOGIN_PATH = "/login.html";
+const SIGNUP_PATH = "/signup.html";
+const HOME_PATH = "/index.html";
+
+function createButton(label, onClick) {
+  const btn = document.createElement("button");
+  btn.textContent = label;
+  btn.onclick = onClick;
+  return btn;
+}
+
+function createDiv(label, onClick) {
+  const div = document.createElement("div");
+  div.textContent = label;
+  div.onclick = onClick;
+  return div;
+}
+
 async function parseResponse(res) {
   const resData = await res.json();
   if (res.ok) {
@@ -29,54 +45,57 @@ async function parseResponse(res) {
   };
 }
 
-// =============================
-// 헤더 렌더링
-// =============================
 function renderHeader() {
   headerRightEl.innerHTML = "";
   if (accessToken) {
-    const logoutBtn = document.createElement("button");
-    logoutBtn.textContent = "로그아웃";
-    logoutBtn.onclick = handleLogout;
+    const logoutBtn = createButton("로그아웃", handleLogout);
     headerRightEl.appendChild(logoutBtn);
   } else {
-    const loginBtn = document.createElement("button");
-    loginBtn.textContent = "로그인";
-    loginBtn.onclick = () => (window.location.href = "/login.html");
-
-    const signupBtn = document.createElement("button");
-    signupBtn.textContent = "회원가입";
-    signupBtn.onclick = () => (window.location.href = "/signup.html");
+    const loginBtn = createButton(
+      "로그인",
+      () => (window.location.href = LOGIN_PATH)
+    );
+    const signupBtn = createButton(
+      "회원가입",
+      () => (window.location.href = SIGNUP_PATH)
+    );
 
     headerRightEl.appendChild(loginBtn);
     headerRightEl.appendChild(signupBtn);
   }
 }
 
-// =============================
-// 채팅 목록 출력
-// =============================
+async function postRequest(url, body, useAuth = true) {
+  const headers = { "Content-Type": "application/json" };
+  if (useAuth && accessToken) {
+    headers.Authorization = accessToken;
+  }
+  const res = await fetch(url, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+  return res;
+}
+
 function renderChatList(chats) {
   chatListEl.innerHTML = "";
 
-  const newChatItem = document.createElement("div");
-  newChatItem.textContent = "새 채팅";
-  newChatItem.style.fontWeight = "bold";
-  newChatItem.onclick = () => (window.location.href = "index.html");
+  const newChatItem = createDiv(
+    "새 채팅",
+    () => (window.location.href = HOME_PATH)
+  );
   chatListEl.append(newChatItem);
 
   chats.forEach((chat) => {
-    const item = document.createElement("div");
-    item.textContent = chat.title;
-    item.onclick = () =>
-      (window.location.href = `index.html?chatId=${chat.id}`);
+    const item = createDiv(
+      chat.title,
+      () => (window.location.href = `${HOME_PATH}?chatId=${chat.id}`)
+    );
     chatListEl.appendChild(item);
   });
 }
 
-// =============================
-// 메시지 출력
-// =============================
 function renderMessage(text, isUser = false) {
   const msgEl = document.createElement("div");
   msgEl.className = `message ${isUser ? "user-message" : "bot-message"}`;
@@ -85,12 +104,9 @@ function renderMessage(text, isUser = false) {
   messagesEl.scrollTop = messagesEl.scrollHeight;
 }
 
-// =============================
-// API: 채팅 목록
-// =============================
 async function fetchChatList() {
   try {
-    const res = await fetch("http://localhost:8080/chats/conversations", {
+    const res = await fetch(`${BASE_URL}/chats/conversations`, {
       headers: { Authorization: accessToken },
     });
 
@@ -104,17 +120,11 @@ async function fetchChatList() {
   }
 }
 
-// =============================
-// API: 채팅 히스토리
-// =============================
 async function fetchChatHistory(chatId) {
   try {
-    const res = await fetch(
-      `http://localhost:8080/chats/conversations/${chatId}`,
-      {
-        headers: { Authorization: accessToken },
-      }
-    );
+    const res = await fetch(`${BASE_URL}/chats/conversations/${chatId}`, {
+      headers: { Authorization: accessToken },
+    });
 
     const result = await parseResponse(res);
     if (!result.ok) return;
@@ -136,44 +146,28 @@ async function sendMessageToServer(prompt) {
 
   // 비로그인
   if (!isLoggedIn) {
-    const res = await fetch("http://localhost:8080/chats", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    });
+    const res = await postRequest(`${BASE_URL}/chats`, { prompt }, false);
     return parseResponse(res);
   }
 
   // 로그인 + 신규 채팅
   if (!chatId) {
-    const res = await fetch("http://localhost:8080/chats", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: accessToken,
-      },
-      body: JSON.stringify({ prompt }),
-    });
-
+    const res = await postRequest(`${BASE_URL}/chats`, { prompt }, true);
     const result = await parseResponse(res);
 
     if (result.ok && result.data?.chatId) {
-      window.location.href = `index.html?chatId=${result.data.chatId}`;
+      window.location.href = `${HOME_PATH}?chatId=${result.data.chatId}`;
     }
 
     return result;
   }
 
   // 로그인 + 기존 채팅
-  const res = await fetch(`http://localhost:8080/chats/${chatId}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: accessToken,
-    },
-    body: JSON.stringify({ prompt }),
-  });
-
+  const res = await postRequest(
+    `${BASE_URL}/chats/${chatId}`,
+    { prompt },
+    true
+  );
   return parseResponse(res);
 }
 
@@ -182,7 +176,7 @@ async function sendMessageToServer(prompt) {
 // =============================
 async function handleLogout() {
   try {
-    await fetch("http://localhost:8080/logout", {
+    await fetch(`${BASE_URL}/logout`, {
       method: "POST",
       headers: { Authorization: refreshToken },
     });
