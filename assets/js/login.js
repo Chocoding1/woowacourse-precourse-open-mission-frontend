@@ -22,7 +22,7 @@ function showAlert(message) {
 function getLoginInfo() {
   return {
     email: emailEl.value.trim(),
-    passwrd: passwordEl.value.trim(),
+    password: passwordEl.value.trim(),
   };
 }
 
@@ -50,7 +50,7 @@ async function login() {
   }
 
   try {
-    const res = requestLogin(email, password);
+    const res = await requestLogin(email, password);
 
     if (!res.ok) {
       const err = await res.json();
@@ -66,7 +66,7 @@ async function login() {
 }
 
 function startLoginWhenEnter(e) {
-  if (e.key == "Enter") login();
+  if (e.key === "Enter") login();
 }
 
 loginBtn.addEventListener("click", login);
