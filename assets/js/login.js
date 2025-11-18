@@ -1,15 +1,17 @@
+import { axiosInstance } from "./axiosInstance.js";
+
 const emailEl = document.getElementById("email");
 const passwordEl = document.getElementById("password");
 const loginBtn = document.getElementById("login-btn");
 const signupBtn = document.getElementById("signup-btn");
 
-const LOGIN_URL = "http://localhost:8080/login";
+const LOGIN_URI = "/login";
+
 const HOME_PATH = "/index.html";
 const SIGNUP_PATH = "/signup.html";
 
 const LOGIN_INFO_INPUT_MESSAGE = "이메일과 비밀번호를 입력하세요.";
 const LOGIN_FAIL_MESSAGE = "로그인 실패";
-const SERVER_ERROR_MESSAGE = "서버 오류가 발생했습니다.";
 
 function redirectTo(path) {
   window.location.href = path;
@@ -27,23 +29,20 @@ function getLoginInfo() {
 }
 
 function saveTokens(res) {
-  const access = res.headers.get("Authorization");
-  const refresh = res.headers.get("Authorization-Refresh");
+  const accessToken = res.headers["authorization"]?.replace("Bearer ", "");
+  const refreshToken = res.headers["authorization-refresh"];
 
-  if (access) localStorage.setItem("accessToken", access);
-  if (refresh) localStorage.setItem("refreshToken", refresh);
+  if (accessToken) localStorage.setItem("accessToken", accessToken);
+  if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
 }
 
 async function requestLogin(email, password) {
-  const res = await fetch(LOGIN_URL, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password }),
-  });
-  return res;
+  console.log("requestLogin 실행", email, password);
+  return axiosInstance.post(LOGIN_URI, { email, password });
 }
 
 async function login() {
+  console.log("login 함수 호출됨");
   const { email, password } = getLoginInfo();
   if (!email || !password) {
     return showAlert(LOGIN_INFO_INPUT_MESSAGE);
@@ -52,16 +51,12 @@ async function login() {
   try {
     const res = await requestLogin(email, password);
 
-    if (!res.ok) {
-      const err = await res.json();
-      return showAlert(err.errorMessage || LOGIN_FAIL_MESSAGE);
-    }
-
     saveTokens(res);
     redirectTo(HOME_PATH);
   } catch (err) {
     console.error(err);
-    showAlert(SERVER_ERROR_MESSAGE);
+    const message = err.response?.data?.errorMessage || LOGIN_FAIL_MESSAGE;
+    showAlert(message);
   }
 }
 
