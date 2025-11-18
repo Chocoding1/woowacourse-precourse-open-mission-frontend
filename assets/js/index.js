@@ -48,7 +48,7 @@ function renderHeader() {
   }
 }
 
-function renderChatList(chats) {
+async function renderChatList() {
   chatListEl.innerHTML = "";
 
   const newChatItem = createDiv(
@@ -56,6 +56,8 @@ function renderChatList(chats) {
     () => (window.location.href = HOME_PATH)
   );
   chatListEl.append(newChatItem);
+
+  const chats = await fetchChatList();
 
   chats.forEach((chat) => {
     const item = createDiv(
@@ -135,6 +137,8 @@ async function handleSendMessage() {
 
   const result = await sendMessageToServer(prompt);
 
+  renderChatList();
+
   if (result?.errorMessage) {
     renderMessage(result.errorMessage, false);
     return;
@@ -169,8 +173,7 @@ async function init() {
   if (accessToken) {
     chatListEl.style.display = "block";
 
-    const chats = await fetchChatList();
-    renderChatList(chats);
+    renderChatList();
 
     if (chatId) {
       await fetchChatHistory(chatId);
