@@ -37,12 +37,10 @@ function saveTokens(res) {
 }
 
 async function requestLogin(email, password) {
-  console.log("requestLogin 실행", email, password);
   return axiosInstance.post(LOGIN_URI, { email, password });
 }
 
 async function login() {
-  console.log("login 함수 호출됨");
   const { email, password } = getLoginInfo();
   if (!email || !password) {
     return showAlert(LOGIN_INFO_INPUT_MESSAGE);
