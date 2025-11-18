@@ -1,14 +1,12 @@
+import { axiosInstance } from "./axiosInstance.js";
+
 const headerRightEl = document.getElementById("header-right");
 const chatListEl = document.getElementById("chat-list");
 const messagesEl = document.getElementById("messages");
 const chatInputEl = document.getElementById("chat-input");
 const sendBtnEl = document.getElementById("send-btn");
 
-const accessToken = localStorage.getItem("accessToken");
-const refreshToken = localStorage.getItem("refreshToken");
 const chatId = new URLSearchParams(window.location.search).get("chatId");
-
-const BASE_URL = "http://localhost:8080";
 
 const LOGIN_PATH = "/login.html";
 const SIGNUP_PATH = "/signup.html";
@@ -28,27 +26,12 @@ function createDiv(label, onClick) {
   return div;
 }
 
-async function parseResponse(res) {
-  const resData = await res.json();
-  if (res.ok) {
-    return { ok: true, data: resData.data, message: resData.message };
-  }
-  return {
-    ok: false,
-    error: {
-      status: resData.status,
-      errorCode: resData.errorCode,
-      errorMessage: resData.errorMessage,
-      errorFields: resData.errorFields,
-      redirectUri: resData.redirectUri,
-    },
-  };
-}
-
 function renderHeader() {
   headerRightEl.innerHTML = "";
+  const accessToken = localStorage.getItem("accessToken");
+
   if (accessToken) {
-    const logoutBtn = createButton("로그아웃", handleLogout);
+    const logoutBtn = createButton("로그아웃", logout);
     headerRightEl.appendChild(logoutBtn);
   } else {
     const loginBtn = createButton(
@@ -63,19 +46,6 @@ function renderHeader() {
     headerRightEl.appendChild(loginBtn);
     headerRightEl.appendChild(signupBtn);
   }
-}
-
-async function postRequest(url, body, useAuth = true) {
-  const headers = { "Content-Type": "application/json" };
-  if (useAuth && accessToken) {
-    headers.Authorization = accessToken;
-  }
-  const res = await fetch(url, {
-    method: "POST",
-    headers,
-    body: JSON.stringify(body),
-  });
-  return res;
 }
 
 function renderChatList(chats) {
@@ -106,14 +76,9 @@ function renderMessage(text, isUser = false) {
 
 async function fetchChatList() {
   try {
-    const res = await fetch(`${BASE_URL}/chats/conversations`, {
-      headers: { Authorization: accessToken },
-    });
+    const res = await axiosInstance.get("/chats/conversations");
 
-    const result = await parseResponse(res);
-    if (!result.ok) return [];
-
-    return result.data.conversationDtos;
+    return res.data?.data?.conversationDtos || [];
   } catch (err) {
     console.error("채팅 목록 조회 오류:", err);
     return [];
@@ -122,14 +87,9 @@ async function fetchChatList() {
 
 async function fetchChatHistory(chatId) {
   try {
-    const res = await fetch(`${BASE_URL}/chats/conversations/${chatId}`, {
-      headers: { Authorization: accessToken },
-    });
+    const res = await axiosInstance.get(`/chats/conversations/${chatId}`);
 
-    const result = await parseResponse(res);
-    if (!result.ok) return;
-
-    const messages = result.data?.messageDtos;
+    const messages = res.data?.data?.messageDtos;
     if (messages) {
       messages.forEach((m) => renderMessage(m.content, m.role === "USER"));
     }
@@ -138,60 +98,34 @@ async function fetchChatHistory(chatId) {
   }
 }
 
-// =============================
-// API: 메시지 전송
-// =============================
 async function sendMessageToServer(prompt) {
-  const isLoggedIn = !!accessToken;
+  const accessToken = localStorage.getItem("accessToken");
 
-  // 비로그인
-  if (!isLoggedIn) {
-    const res = await postRequest(`${BASE_URL}/chats`, { prompt }, false);
-    return parseResponse(res);
-  }
-
-  // 로그인 + 신규 채팅
-  if (!chatId) {
-    const res = await postRequest(`${BASE_URL}/chats`, { prompt }, true);
-    const result = await parseResponse(res);
-
-    if (result.ok && result.data?.chatId) {
-      window.location.href = `${HOME_PATH}?chatId=${result.data.chatId}`;
+  try {
+    if (!accessToken) {
+      const res = await axiosInstance.post("/chats", { prompt });
+      return res.data;
     }
 
-    return result;
-  }
+    if (!chatId) {
+      const res = await axiosInstance.post("/chats", { prompt });
+      const newChatId = res.data?.data?.chatId;
 
-  // 로그인 + 기존 채팅
-  const res = await postRequest(
-    `${BASE_URL}/chats/${chatId}`,
-    { prompt },
-    true
-  );
-  return parseResponse(res);
-}
+      if (newChatId) {
+        window.location.href = `${HOME_PATH}?chatId=${newChatId}`;
+      }
 
-// =============================
-// 로그아웃
-// =============================
-async function handleLogout() {
-  try {
-    await fetch(`${BASE_URL}/logout`, {
-      method: "POST",
-      headers: { Authorization: refreshToken },
-    });
+      return res.data;
+    }
+
+    const res = await axiosInstance.post(`/chats/${chatId}`, { prompt });
+    return res.data;
   } catch (err) {
-    console.error("로그아웃 실패:", err);
+    const errorData = err.response?.data || { errorMessage: "오류 발생" };
+    return errorData;
   }
-
-  localStorage.removeItem("accessToken");
-  localStorage.removeItem("refreshToken");
-  location.href = "index.html";
 }
 
-// =============================
-// 메시지 전송 처리
-// =============================
 async function handleSendMessage() {
   const prompt = chatInputEl.value.trim();
   if (!prompt) return;
@@ -201,32 +135,42 @@ async function handleSendMessage() {
 
   const result = await sendMessageToServer(prompt);
 
-  if (!result.ok) {
-    if (result.error.redirectUri) {
-      alert(result.error.errorMessage);
-      window.location.href = result.error.redirectUri;
-      return;
-    }
-    renderMessage(result.error.errorMessage, false);
+  if (result?.errorMessage) {
+    renderMessage(result.errorMessage, false);
     return;
   }
 
-  if (result.data?.message) {
+  if (result?.data?.message) {
     renderMessage(result.data.message, false);
   }
 }
 
-// =============================
-// 초기 실행
-// =============================
+async function logout() {
+  const refreshToken = localStorage.getItem("refreshToken");
+
+  try {
+    localStorage.removeItem("accessToken");
+
+    await axios.post("http://localhost:8080/logout", null, {
+      headers: { Authorization: refreshToken },
+    });
+  } catch (err) {
+    console.error("로그아웃 실패:", err);
+  } finally {
+    localStorage.removeItem("refreshToken");
+    location.href = "index.html";
+  }
+}
+
 async function init() {
   renderHeader();
+  const accessToken = localStorage.getItem("accessToken");
 
   if (accessToken) {
     chatListEl.style.display = "block";
 
     const chats = await fetchChatList();
-    if (chats) renderChatList(chats);
+    renderChatList(chats);
 
     if (chatId) {
       await fetchChatHistory(chatId);
