@@ -1,46 +1,76 @@
 const emailEl = document.getElementById("email");
 const passwordEl = document.getElementById("password");
+const loginBtn = document.getElementById("login-btn");
+const signupBtn = document.getElementById("signup-btn");
+
+const LOGIN_URL = "http://localhost:8080/login";
+const HOME_PATH = "/index.html";
+const SIGNUP_PATH = "/signup.html";
+
+const LOGIN_INFO_INPUT_MESSAGE = "이메일과 비밀번호를 입력하세요.";
+const LOGIN_FAIL_MESSAGE = "로그인 실패";
+const SERVER_ERROR_MESSAGE = "서버 오류가 발생했습니다.";
+
+function redirectTo(path) {
+  window.location.href = path;
+}
+
+function showAlert(message) {
+  alert(message);
+}
+
+function getLoginInfo() {
+  return {
+    email: emailEl.value.trim(),
+    passwrd: passwordEl.value.trim(),
+  };
+}
+
+function saveTokens(res) {
+  const access = res.headers.get("Authorization");
+  const refresh = res.headers.get("Authorization-Refresh");
+
+  if (access) localStorage.setItem("accessToken", access);
+  if (refresh) localStorage.setItem("refreshToken", refresh);
+}
+
+async function requestLogin(email, password) {
+  const res = await fetch(LOGIN_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  return res;
+}
 
 async function login() {
-  const email = emailEl.value.trim();
-  const password = passwordEl.value.trim();
-
+  const { email, password } = getLoginInfo();
   if (!email || !password) {
-    return alert("이메일과 비밀번호를 입력하세요.");
+    return showAlert(LOGIN_INFO_INPUT_MESSAGE);
   }
 
   try {
-    const res = await fetch("http://localhost:8080/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    const res = requestLogin(email, password);
 
     if (!res.ok) {
       const err = await res.json();
-      return alert(err.errorMessage || "로그인 실패");
+      return showAlert(err.errorMessage || LOGIN_FAIL_MESSAGE);
     }
 
-    const access = res.headers.get("Authorization");
-    const refresh = res.headers.get("Authorization-Refresh");
-    if (access) localStorage.setItem("accessToken", access);
-    if (refresh) localStorage.setItem("refreshToken", refresh);
-
-    window.location.href = "/index.html";
+    saveTokens(res);
+    redirectTo(HOME_PATH);
   } catch (err) {
     console.error(err);
-    alert("서버 오류가 발생했습니다.");
+    showAlert(SERVER_ERROR_MESSAGE);
   }
 }
 
-document.getElementById("login-btn").addEventListener("click", login);
-document.getElementById("signup-btn").addEventListener("click", () => {
-  window.location.href = "/signup.html";
-});
+function startLoginWhenEnter(e) {
+  if (e.key == "Enter") login();
+}
 
-// Enter 키 이벤트
+loginBtn.addEventListener("click", login);
+signupBtn.addEventListener("click", () => redirectTo(SIGNUP_PATH));
 [emailEl, passwordEl].forEach((el) =>
-  el.addEventListener("keypress", (e) => {
-    if (e.key === "Enter") login();
-  })
+  el.addEventListener("keypress", startLoginWhenEnter)
 );
