@@ -1,79 +1,75 @@
 import { axiosInstance } from "./axiosInstance.js";
 
-const headerRightEl = document.getElementById("header-right");
-const chatListEl = document.getElementById("chat-list");
-const messagesEl = document.getElementById("messages");
-const chatInputEl = document.getElementById("chat-input");
-const sendBtnEl = document.getElementById("send-btn");
+const DOM = {
+  headerRight: document.getElementById("header-right"),
+  chatList: document.getElementById("chat-list"),
+  messages: document.getElementById("messages"),
+  chatInput: document.getElementById("chat-input"),
+  sendBtn: document.getElementById("send-btn"),
+};
 
 const chatId = new URLSearchParams(window.location.search).get("chatId");
 
-const LOGIN_PATH = "/login.html";
-const SIGNUP_PATH = "/signup.html";
-const HOME_PATH = "/index.html";
+const PATH = {
+  LOGIN: "/login.html",
+  SIGNUP: "/signup.html",
+  HOME: "/index.html",
+};
 
-function createButton(label, onClick) {
-  const btn = document.createElement("button");
-  btn.textContent = label;
-  btn.onclick = onClick;
-  return btn;
+function createElement(tag, text, onClick) {
+  const el = document.createElement(tag);
+  el.textContent = text ?? "";
+  if (onClick) el.onclick = onClick;
+  return el;
 }
 
-function createDiv(label, onClick) {
-  const div = document.createElement("div");
-  div.textContent = label;
-  div.onclick = onClick;
-  return div;
+function redirectTo(path) {
+  window.location.href = path;
 }
 
 function renderHeader() {
-  headerRightEl.innerHTML = "";
+  const container = DOM.headerRight;
+  container.innerHTML = "";
+
   const accessToken = localStorage.getItem("accessToken");
 
   if (accessToken) {
-    const logoutBtn = createButton("로그아웃", logout);
-    headerRightEl.appendChild(logoutBtn);
+    container.appendChild(createElement("button", "로그아웃", logout));
   } else {
-    const loginBtn = createButton(
-      "로그인",
-      () => (window.location.href = LOGIN_PATH)
+    container.appendChild(
+      createElement("button", "로그인", () => redirectTo(PATH.LOGIN))
     );
-    const signupBtn = createButton(
-      "회원가입",
-      () => (window.location.href = SIGNUP_PATH)
+    container.appendChild(
+      createElement("button", "회원가입", () => redirectTo(PATH.SIGNUP))
     );
-
-    headerRightEl.appendChild(loginBtn);
-    headerRightEl.appendChild(signupBtn);
   }
 }
 
 async function renderChatList() {
-  chatListEl.innerHTML = "";
+  const container = DOM.chatList;
+  container.innerHTML = "";
 
-  const newChatItem = createDiv(
-    "새 채팅",
-    () => (window.location.href = HOME_PATH)
+  container.append(
+    createElement("div", "새 채팅", () => redirectTo(PATH.HOME))
   );
-  chatListEl.append(newChatItem);
 
   const chats = await fetchChatList();
 
   chats.forEach((chat) => {
-    const item = createDiv(
-      chat.title,
-      () => (window.location.href = `${HOME_PATH}?chatId=${chat.id}`)
+    container.appendChild(
+      createElement("div", chat.title, () =>
+        redirectTo(`${PATH.HOME}?chatId=${chat.id}`)
+      )
     );
-    chatListEl.appendChild(item);
   });
 }
 
 function renderMessage(text, isUser = false) {
-  const msgEl = document.createElement("div");
+  const msgEl = createElement("div", text);
   msgEl.className = `message ${isUser ? "user-message" : "bot-message"}`;
-  msgEl.textContent = text;
-  messagesEl.appendChild(msgEl);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
+
+  DOM.messages.appendChild(msgEl);
+  DOM.messages.scrollTop = DOM.messages.scrollHeight;
 }
 
 async function fetchChatList() {
@@ -114,7 +110,7 @@ async function sendMessageToServer(prompt) {
       const newChatId = res.data?.data?.chatId;
 
       if (newChatId) {
-        window.location.href = `${HOME_PATH}?chatId=${newChatId}`;
+        redirectTo(`${PATH.HOME}?chatId=${newChatId}`);
       }
 
       return res.data;
@@ -129,11 +125,12 @@ async function sendMessageToServer(prompt) {
 }
 
 async function handleSendMessage() {
-  const prompt = chatInputEl.value.trim();
+  const container = DOM.chatInput;
+  const prompt = container.value.trim();
   if (!prompt) return;
 
   renderMessage(prompt, true);
-  chatInputEl.value = "";
+  container.value = "";
 
   const result = await sendMessageToServer(prompt);
 
@@ -162,7 +159,7 @@ async function logout() {
     console.error("로그아웃 실패:", err);
   } finally {
     localStorage.removeItem("refreshToken");
-    location.href = "index.html";
+    redirectTo(PATH.HOME);
   }
 }
 
@@ -171,17 +168,16 @@ async function init() {
   const accessToken = localStorage.getItem("accessToken");
 
   if (accessToken) {
-    chatListEl.style.display = "block";
-
-    renderChatList();
+    DOM.chatList.style.display = "block";
+    await renderChatList();
 
     if (chatId) {
       await fetchChatHistory(chatId);
     }
   }
 
-  sendBtnEl.onclick = handleSendMessage;
-  chatInputEl.addEventListener("keypress", (e) => {
+  DOM.sendBtn.onclick = handleSendMessage;
+  DOM.chatInput.addEventListener("keypress", (e) => {
     if (e.key === "Enter") handleSendMessage();
   });
 }
