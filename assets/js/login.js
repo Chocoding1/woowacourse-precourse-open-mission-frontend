@@ -7,11 +7,15 @@ const signupBtn = document.getElementById("signup-btn");
 
 const LOGIN_URI = "/login";
 
-const HOME_PATH = "/index.html";
-const SIGNUP_PATH = "/signup.html";
+const PATH = {
+  HOME: "/index.html",
+  SIGNUP: "/signup.html",
+};
 
-const LOGIN_INFO_INPUT_MESSAGE = "이메일과 비밀번호를 입력하세요.";
-const LOGIN_FAIL_MESSAGE = "로그인 실패";
+const MESSAGE = {
+  LOGIN_INFO_INPUT: "이메일과 비밀번호를 입력하세요.",
+  LOGIN_FAIL: "로그인 실패",
+};
 
 function redirectTo(path) {
   window.location.href = path;
@@ -28,6 +32,14 @@ function getLoginInfo() {
   };
 }
 
+function validateLoginInfo({ email, password }) {
+  if (!email || !password) {
+    showAlert(MESSAGE.LOGIN_INFO_INPUT);
+    return false;
+  }
+  return true;
+}
+
 function saveTokens(res) {
   const accessToken = res.headers["authorization"]?.replace("Bearer ", "");
   const refreshToken = res.headers["authorization-refresh"];
@@ -36,24 +48,25 @@ function saveTokens(res) {
   if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
 }
 
-async function requestLogin(email, password) {
+async function requestLogin({ email, password }) {
   return axiosInstance.post(LOGIN_URI, { email, password });
 }
 
 async function login() {
   const { email, password } = getLoginInfo();
-  if (!email || !password) {
-    return showAlert(LOGIN_INFO_INPUT_MESSAGE);
+
+  if (!validateLoginInfo({ email, password })) {
+    return;
   }
 
   try {
-    const res = await requestLogin(email, password);
+    const res = await requestLogin({ email, password });
 
     saveTokens(res);
-    redirectTo(HOME_PATH);
+    redirectTo(PATH.HOME);
   } catch (err) {
     console.error(err);
-    const message = err.response?.data?.errorMessage || LOGIN_FAIL_MESSAGE;
+    const message = err.response?.data?.errorMessage || MESSAGE.LOGIN_FAIL;
     showAlert(message);
   }
 }
@@ -62,8 +75,12 @@ function startLoginWhenEnter(e) {
   if (e.key === "Enter") login();
 }
 
-loginBtn.addEventListener("click", login);
-signupBtn.addEventListener("click", () => redirectTo(SIGNUP_PATH));
-[emailEl, passwordEl].forEach((el) =>
-  el.addEventListener("keypress", startLoginWhenEnter)
-);
+function initEvents() {
+  loginBtn.addEventListener("click", login);
+  signupBtn.addEventListener("click", () => redirectTo(PATH.SIGNUP));
+  [emailEl, passwordEl].forEach((el) =>
+    el.addEventListener("keypress", startLoginWhenEnter)
+  );
+}
+
+initEvents();
