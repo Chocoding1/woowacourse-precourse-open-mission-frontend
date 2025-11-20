@@ -1,43 +1,89 @@
 import { axiosInstance } from "./axiosInstance.js";
 
+function extractErrorBody(err) {
+  return err.response?.data;
+}
+
 export async function loginApi({ email, password }) {
-  return axiosInstance.post("/login", { email, password });
+  try {
+    const res = await axiosInstance.post("/login", { email, password });
+    return res;
+  } catch (err) {
+    throw extractErrorBody(err);
+  }
 }
 
 export async function sendEmailCodeApi({ email }) {
-  return axiosInstance.post("/emails/send-code", { email });
+  try {
+    const res = await axiosInstance.post("/emails/send-code", { email });
+    return res.data;
+  } catch (err) {
+    throw extractErrorBody(err);
+  }
 }
 
 export async function verifyEmailCodeApi({ email, authCode }) {
-  return axiosInstance.post("/emails/verify-code", { email, authCode });
+  try {
+    const res = await axiosInstance.post("/emails/verify-code", {
+      email,
+      authCode,
+    });
+    return res.data;
+  } catch (err) {
+    throw extractErrorBody(err);
+  }
 }
 
 export async function signupApi({ email, password, name }) {
-  return axiosInstance.post("/members", { email, password, name });
+  try {
+    const res = await axiosInstance.post("/members", {
+      email,
+      password,
+      name,
+    });
+    return res.data;
+  } catch (err) {
+    throw extractErrorBody(err);
+  }
 }
 
 export async function getChatListApi() {
-  const res = await axiosInstance.get("/chats/conversations");
-  return res.data?.data?.conversationDtos || [];
+  try {
+    const res = await axiosInstance.get("/chats/conversations");
+    return res.data?.data?.conversationDtos || [];
+  } catch (err) {
+    throw extractErrorBody(err);
+  }
 }
 
 export async function getChatHistoryApi(chatId) {
-  const res = await axiosInstance.get(`/chats/conversations/${chatId}`);
-  return res.data?.data?.messageDtos || [];
+  try {
+    const res = await axiosInstance.get(`/chats/conversations/${chatId}`);
+    return res.data?.data?.messageDtos || [];
+  } catch (err) {
+    throw extractErrorBody(err);
+  }
 }
 
 export async function sendMessageApi(chatId, prompt) {
-  if (chatId) {
-    const res = await axiosInstance.post(`/chats/${chatId}`, { prompt });
+  try {
+    const res = chatId
+      ? await axiosInstance.post(`/chats/${chatId}`, { prompt })
+      : await axiosInstance.post("/chats", { prompt });
+
     return res.data;
-  } else {
-    const res = await axiosInstance.post("/chats", { prompt });
-    return res.data;
+  } catch (err) {
+    throw extractErrorBody(err);
   }
 }
 
 export async function logoutApi(refreshToken) {
-  return axios.post("/logout", null, {
-    headers: { Authorization: refreshToken },
-  });
+  try {
+    const res = await axios.post("/logout", null, {
+      headers: { Authorization: refreshToken },
+    });
+    return res.data;
+  } catch (err) {
+    throw extractErrorBody(err);
+  }
 }
