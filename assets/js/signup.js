@@ -1,21 +1,18 @@
-import { axiosInstance } from "./axiosInstance.js";
+import { getValue, showAlert, setMessage, show, redirectTo } from "./utils.js";
+import { sendEmailCodeApi, verifyEmailCodeApi, signupApi } from "./api.js";
 
-const emailEl = document.getElementById("email");
-const emailCodeContainerEl = document.getElementById("email-code-container");
-const emailCodeEl = document.getElementById("email-code");
-const emailMsgEl = document.getElementById("email-msg");
+const DOM = {
+  email: document.getElementById("email"),
+  authCodeContainer: document.getElementById("auth-code-container"),
+  authCode: document.getElementById("auth-code"),
+  authMsg: document.getElementById("auth-msg"),
 
-const passwordEl = document.getElementById("password");
-const nameEl = document.getElementById("name");
+  password: document.getElementById("password"),
+  name: document.getElementById("name"),
 
-const sendCodeBtn = document.getElementById("send-code-btn");
-const verifyCodeBtn = document.getElementById("verify-code-btn");
-const signupBtn = document.getElementById("signup-btn");
-
-const URI = {
-  SEND_CODE: "/emails/send-code",
-  VERIFY_CODE: "/emails/verify-code",
-  SIGNUP: "/members",
+  sendCodeBtn: document.getElementById("send-code-btn"),
+  verifyCodeBtn: document.getElementById("verify-code-btn"),
+  signupBtn: document.getElementById("signup-btn"),
 };
 
 const PATH = {
@@ -36,84 +33,58 @@ const MESSAGE = {
 
 let isEmailVerified = false;
 
-function getValue(el) {
-  return el.value.trim();
-}
-
-function showAlert(message) {
-  alert(message);
-}
-
-function setMessage(text, type = "") {
-  emailMsgEl.textContent = text;
-  emailMsgEl.className = type ? `message ${type}` : "message";
-}
-
-function show(el) {
-  el.classList.remove("hidden");
-}
-
-async function requestPost(uri, data) {
-  return await axiosInstance.post(uri, data);
-}
-
-async function sendAuthCode() {
-  const email = getValue(emailEl);
+async function handleSendAuthCode() {
+  const email = getValue(DOM.email);
   if (!email) return showAlert(MESSAGE.EMAIL_INPUT);
 
   try {
-    await requestPost(URI.SEND_CODE, { email });
-
-    show(emailCodeContainerEl);
+    await sendEmailCodeApi({ email });
+    show(DOM.authCodeContainer);
     showAlert(MESSAGE.SEND_CODE_SUCCESS);
   } catch (err) {
     console.error(err);
-    const message = err.response?.data?.errorMessage || MESSAGE.SEND_CODE_FAIL;
-    showAlert(message);
+    showAlert(err.errorMessage);
   }
 }
 
-async function verifyAuthCode() {
-  const email = getValue(emailEl);
-  const authCode = getValue(emailCodeEl);
+async function handleVerifyAuthCode() {
+  const email = getValue(DOM.email);
+  const authCode = getValue(DOM.authCode);
 
   if (!authCode) return showAlert(MESSAGE.CODE_INPUT);
 
   try {
-    await requestPost(URI.VERIFY_CODE, { email, authCode });
+    await verifyEmailCodeApi({ email, authCode });
 
     isEmailVerified = true;
-    setMessage(MESSAGE.VERIFY_SUCCESS, "success");
+    setMessage(DOM.authMsg, MESSAGE.VERIFY_SUCCESS, "success");
   } catch (err) {
     console.error(err);
-    const message = err.response?.data?.errorMessage || MESSAGE.VERIFY_FAIL;
-    showAlert(message);
+    showAlert(err.errorMessage);
   }
 }
 
-async function signup() {
-  const email = getValue(emailEl);
-  const password = getValue(passwordEl);
-  const name = getValue(nameEl);
+async function handleSignup() {
+  const email = getValue(DOM.email);
+  const password = getValue(DOM.password);
+  const name = getValue(DOM.name);
 
   if (!email || !password || !name) return showAlert(MESSAGE.ALL_INFO_INPUT);
   if (!isEmailVerified) return showAlert(MESSAGE.REQUEST_EMAIL_CERT);
 
   try {
-    await requestPost(URI.SIGNUP, { email, password, name });
-
-    window.location.href = PATH.LOGIN;
+    await signupApi({ email, password, name });
+    redirectTo(PATH.LOGIN);
   } catch (err) {
     console.error(err);
-    const message = err.response?.data?.errorMessage || MESSAGE.SIGNUP_FAIL;
-    showAlert(message);
+    showAlert(err.errorMessage);
   }
 }
 
 function initEvents() {
-  sendCodeBtn.addEventListener("click", sendAuthCode);
-  verifyCodeBtn.addEventListener("click", verifyAuthCode);
-  signupBtn.addEventListener("click", signup);
+  DOM.sendCodeBtn.addEventListener("click", handleSendAuthCode);
+  DOM.verifyCodeBtn.addEventListener("click", handleVerifyAuthCode);
+  DOM.signupBtn.addEventListener("click", handleSignup);
 }
 
 initEvents();
