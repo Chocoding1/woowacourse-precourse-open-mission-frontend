@@ -1,11 +1,12 @@
-import { axiosInstance } from "./axiosInstance.js";
+import { getValue, showAlert, redirectTo } from "./utils.js";
+import { loginApi } from "./api.js";
 
-const emailEl = document.getElementById("email");
-const passwordEl = document.getElementById("password");
-const loginBtn = document.getElementById("login-btn");
-const signupBtn = document.getElementById("signup-btn");
-
-const LOGIN_URI = "/login";
+const DOM = {
+  email: document.getElementById("email"),
+  password: document.getElementById("password"),
+  loginBtn: document.getElementById("login-btn"),
+  signupBtn: document.getElementById("signup-btn"),
+};
 
 const PATH = {
   HOME: "/index.html",
@@ -14,31 +15,7 @@ const PATH = {
 
 const MESSAGE = {
   LOGIN_INFO_INPUT: "이메일과 비밀번호를 입력하세요.",
-  LOGIN_FAIL: "로그인 실패",
 };
-
-function redirectTo(path) {
-  window.location.href = path;
-}
-
-function showAlert(message) {
-  alert(message);
-}
-
-function getLoginInfo() {
-  return {
-    email: emailEl.value.trim(),
-    password: passwordEl.value.trim(),
-  };
-}
-
-function validateLoginInfo({ email, password }) {
-  if (!email || !password) {
-    showAlert(MESSAGE.LOGIN_INFO_INPUT);
-    return false;
-  }
-  return true;
-}
 
 function saveTokens(res) {
   const accessToken = res.headers["authorization"]?.replace("Bearer ", "");
@@ -48,37 +25,32 @@ function saveTokens(res) {
   if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
 }
 
-async function requestLogin({ email, password }) {
-  return axiosInstance.post(LOGIN_URI, { email, password });
-}
+async function handelLogin() {
+  const email = getValue(DOM.email);
+  const password = getValue(DOM.password);
 
-async function login() {
-  const { email, password } = getLoginInfo();
-
-  if (!validateLoginInfo({ email, password })) {
-    return;
+  if (!email || !password) {
+    return showAlert(MESSAGE.LOGIN_INFO_INPUT);
   }
 
   try {
-    const res = await requestLogin({ email, password });
-
+    const res = await loginApi({ email, password });
     saveTokens(res);
     redirectTo(PATH.HOME);
   } catch (err) {
     console.error(err);
-    const message = err.response?.data?.errorMessage || MESSAGE.LOGIN_FAIL;
-    showAlert(message);
+    showAlert(err.errorMessage);
   }
 }
 
 function startLoginWhenEnter(e) {
-  if (e.key === "Enter") login();
+  if (e.key === "Enter") handelLogin();
 }
 
 function initEvents() {
-  loginBtn.addEventListener("click", login);
-  signupBtn.addEventListener("click", () => redirectTo(PATH.SIGNUP));
-  [emailEl, passwordEl].forEach((el) =>
+  DOM.loginBtn.addEventListener("click", handelLogin);
+  DOM.signupBtn.addEventListener("click", () => redirectTo(PATH.SIGNUP));
+  [DOM.email, DOM.password].forEach((el) =>
     el.addEventListener("keypress", startLoginWhenEnter)
   );
 }
