@@ -9,8 +9,8 @@ const DOM = {
 };
 
 const PATH = {
-  HOME: "/index.html",
-  SIGNUP: "/signup.html",
+  HOME: "/html/index.html",
+  SIGNUP: "/html/signup.html",
 };
 
 const MESSAGE = {

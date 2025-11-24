@@ -15,9 +15,9 @@ const DOM = {
 };
 
 const PATH = {
-  LOGIN: "/login.html",
-  SIGNUP: "/signup.html",
-  HOME: "/index.html",
+  LOGIN: "/html/login.html",
+  SIGNUP: "/html/signup.html",
+  HOME: "/html/index.html",
 };
 
 const chatId = new URLSearchParams(window.location.search).get("chatId");

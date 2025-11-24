@@ -16,7 +16,7 @@ const DOM = {
 };
 
 const PATH = {
-  LOGIN: "/login.html",
+  LOGIN: "/html/login.html",
 };
 
 const MESSAGE = {
