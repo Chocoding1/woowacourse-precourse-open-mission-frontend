@@ -41,6 +41,30 @@
 - **이메일 입력칸**, **비밀번호 입력칸**, **로그인 버튼**, **회원가입 버튼**이 존재합니다.
 
 ---
+# 프로젝트 구조
+```
+C:.
+├─assets
+│  ├─css
+│  │      index.css
+│  │      login.css
+│  │      signup.css
+│  │
+│  └─js
+│          api.js
+│          axiosInstance.js
+│          chat.js
+│          login.js
+│          signup.js
+│          utils.js
+│
+├─html
+│      index.html
+│      login.html
+│      signUp.html
+```
+
+---
 # 실제 화면
 ## 홈화면(로그인 X)
 <img width="1916" height="953" alt="Image" src="https://github.com/user-attachments/assets/a837960e-40dc-4628-b845-b5f0ae1f07ac" />
