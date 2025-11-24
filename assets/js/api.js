@@ -79,8 +79,8 @@ export async function sendMessageApi(chatId, prompt) {
 
 export async function logoutApi(refreshToken) {
   try {
-    const res = await axios.post("/logout", null, {
-      headers: { Authorization: refreshToken },
+    const res = await axios.post("http://localhost:8080/logout", null, {
+      headers: { "Authorization-Refresh": refreshToken },
     });
     return res.data;
   } catch (err) {
